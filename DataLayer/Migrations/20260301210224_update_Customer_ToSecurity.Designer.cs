@@ -4,6 +4,7 @@ using DataLayer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DataLayer.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260301210224_update_Customer_ToSecurity")]
+    partial class update_Customer_ToSecurity
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -89,7 +92,7 @@ namespace DataLayer.Migrations
 
                     b.HasIndex("TripID");
 
-                    b.ToTable("Bookings", (string)null);
+                    b.ToTable("Bookings");
                 });
 
             modelBuilder.Entity("ModelsLayer.Buses", b =>
@@ -145,7 +148,7 @@ namespace DataLayer.Migrations
 
                     b.HasIndex("DriverID");
 
-                    b.ToTable("Buses", (string)null);
+                    b.ToTable("Buses");
                 });
 
             modelBuilder.Entity("ModelsLayer.Cities", b =>
@@ -168,7 +171,7 @@ namespace DataLayer.Migrations
 
                     b.HasIndex("CountryID");
 
-                    b.ToTable("Cities", (string)null);
+                    b.ToTable("Cities");
 
                     b.HasData(
                         new
@@ -272,7 +275,7 @@ namespace DataLayer.Migrations
 
                     b.HasKey("CountryID");
 
-                    b.ToTable("Countries", (string)null);
+                    b.ToTable("Countries");
 
                     b.HasData(
                         new
@@ -351,7 +354,7 @@ namespace DataLayer.Migrations
 
                     b.HasIndex("CountryId");
 
-                    b.ToTable("Customers", (string)null);
+                    b.ToTable("Customers");
                 });
 
             modelBuilder.Entity("ModelsLayer.CustomersCountries", b =>
@@ -369,7 +372,7 @@ namespace DataLayer.Migrations
 
                     b.HasKey("CountryID");
 
-                    b.ToTable("CustomersCountries", (string)null);
+                    b.ToTable("CustomersCountries");
                 });
 
             modelBuilder.Entity("ModelsLayer.Drivers", b =>
@@ -396,7 +399,7 @@ namespace DataLayer.Migrations
 
                     b.HasIndex("CreatedByUserID");
 
-                    b.ToTable("Drivers", (string)null);
+                    b.ToTable("Drivers");
                 });
 
             modelBuilder.Entity("ModelsLayer.Payments", b =>
@@ -429,7 +432,7 @@ namespace DataLayer.Migrations
                     b.HasIndex("BookingID")
                         .IsUnique();
 
-                    b.ToTable("Payments", (string)null);
+                    b.ToTable("Payments");
                 });
 
             modelBuilder.Entity("ModelsLayer.RoutePrices", b =>
@@ -471,7 +474,7 @@ namespace DataLayer.Migrations
 
                     b.HasIndex("RouteID");
 
-                    b.ToTable("RoutePrices", (string)null);
+                    b.ToTable("RoutePrices");
                 });
 
             modelBuilder.Entity("ModelsLayer.Routes", b =>
@@ -522,7 +525,7 @@ namespace DataLayer.Migrations
 
                     b.HasIndex("ToCountryID");
 
-                    b.ToTable("Routes", (string)null);
+                    b.ToTable("Routes");
                 });
 
             modelBuilder.Entity("ModelsLayer.Tickets", b =>
@@ -571,7 +574,7 @@ namespace DataLayer.Migrations
 
                     b.HasIndex("BookingID");
 
-                    b.ToTable("Tickets", (string)null);
+                    b.ToTable("Tickets");
                 });
 
             modelBuilder.Entity("ModelsLayer.Trips", b =>
@@ -632,7 +635,7 @@ namespace DataLayer.Migrations
 
                     b.HasIndex("RouteID");
 
-                    b.ToTable("Trips", (string)null);
+                    b.ToTable("Trips");
                 });
 
             modelBuilder.Entity("ModelsLayer.Users", b =>
@@ -667,7 +670,7 @@ namespace DataLayer.Migrations
 
                     b.HasKey("UserID");
 
-                    b.ToTable("Users", (string)null);
+                    b.ToTable("Users");
                 });
 
             modelBuilder.Entity("ModelsLayer.Bookings", b =>

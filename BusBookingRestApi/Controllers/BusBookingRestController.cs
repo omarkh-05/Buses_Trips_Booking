@@ -1,13 +1,9 @@
 ﻿using BussinessLayer;
 using Castle.Core.Resource;
-using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
-using Microsoft.VisualBasic;
 using ModelsLayer;
-using Newtonsoft.Json;
 using System.Security.Claims;
-using System.Threading.Tasks;
 
 namespace BusBookingRestApi.Controllers
 {
@@ -15,61 +11,37 @@ namespace BusBookingRestApi.Controllers
     [Route("api/[controller]")]
     public class BusBookingRestController : ControllerBase
     {
-        private readonly CustomersBLL _customersBLL;
+        private readonly ICustomersBLL _customersBLL;
 
-        public BusBookingRestController(CustomersBLL customersBLL)
+
+        public BusBookingRestController(ICustomersBLL customersBLL)
         {
             _customersBLL = customersBLL;
         }
 
-        [HttpPost("AddCustomer", Name = "AddNewCustomer")]
-        [ProducesResponseType(StatusCodes.Status201Created)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public ActionResult<Customers> AddCustomer([FromBody] Customers customers)
-        {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+        /* [HttpPost("AddCustomer", Name = "AddNewCustomer")]
+         [ProducesResponseType(StatusCodes.Status201Created)]
+         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+         public ActionResult<Customers> AddCustomer([FromBody] Customers customers)
+         {
+             if (!ModelState.IsValid)
+                 return BadRequest(ModelState);
 
-            if (customers == null || string.IsNullOrWhiteSpace(customers.FullName))
-                return BadRequest("Customer data is invalid");
+             if (customers == null || string.IsNullOrWhiteSpace(customers.FullName))
+                 return BadRequest("Customer data is invalid");
 
-            _customersBLL.CurrentCustomer = customers;
+             _customersBLL.CurrentCustomer = customers;
 
-            if (_customersBLL.Save())
-            {
-                return Created("", customers);
-            }
+             if (_customersBLL.Save())
+             {
+                 return Created("", customers);
+             }
 
-            return BadRequest("Error while saving customer");
-        }
+             return BadRequest("Error while saving customer");
+         }*/
 
-        [HttpGet("MyProfile", Name = "Profile")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<Customers>> GetProfile()
-        {
-            try
-            {
-                var customerId = User.FindFirstValue(ClaimTypes.NameIdentifier);// بطلع معك في الكلايمز الي مبعوته في التوكن التابع لليوزر الي عمل اوثنتيكيت ونادى الاندبوينت هاي ClaimTypes.NameIdentifier هاي يعني جيبلي اول 
-                if (Convert.ToInt32(customerId) < 0)
-                {
-                    return BadRequest("Customer ID not found in token");
-                }
-                var customer = await _customersBLL.GetCustomerByID(int.Parse(customerId));
-                if (customer == null)
-                {
-                    return NotFound("Customer not found");
-                }
-                return Ok(customer);
-            }
-            catch (Exception ex)
-            {
-                return NotFound("Customer not found");
-            }
-        }
 
-        [HttpPost("Customers/Login", Name = "CustomersLogin")]
+        /*[HttpPost("Customers/Login", Name = "CustomersLogin")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -95,7 +67,6 @@ namespace BusBookingRestApi.Controllers
                     {
                         CustomerID = customer.CustomerID,
                         PhoneNumber = customer.PhoneNumber,
-                        PasswordHash = customer.Password,
                         FullName = customer.FullName,
                         Email = customer.Email,
                         IsActive = customer.IsActive,
@@ -112,10 +83,43 @@ namespace BusBookingRestApi.Controllers
                 // يمكنك إضافة تسجيل للخطأ هنا
                 return StatusCode(500, "Internal server error");
             }
+        }*/
+
+
+        [Authorize]
+        [HttpGet("MyProfile", Name = "Profile")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<Customers>> GetProfile([FromServices] IAuthorizationService authorizationService)
+        {
+                // هذا الكود ضروري
+                // secure api for student project وغاد بحدد الصلاحيات لانه احنا هون بدنا بس صاحب الحساب يوصله لو بدنا صاحب الحساب والادمن بنسوي زي الطريقة الي في مشروع ال Authorization check عشان نتحقق من الكلايم اذا تمام بنروح على الهاندلر عشان ال
+                var customerIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                bool isValidCustomerId = int.TryParse(customerIdClaim, out int customerId);
+
+                if (string.IsNullOrEmpty(customerIdClaim) || !isValidCustomerId || customerId < 1)
+                {
+                    return BadRequest("invalid token");
+                }
+
+                // Authorization check | [Authorize(Policy = "ClientOwnerOrAdmin")] بس هون بطل الها داعي لانه في
+                 var authResult = await authorizationService.AuthorizeAsync(User, customerId, "ClientOwnerOrAdmin");
+                 if (!authResult.Succeeded)
+                     return Forbid();
+
+                var customer = await _customersBLL.GetCustomerByID(customerId);
+                if (customer == null)
+                {
+                    return NotFound("Customer not found");
+                }
+
+                return Ok(customer);
+            
         }
 
-
-
+        
         [HttpGet("GetAllTrips", Name = "GetAllTrips")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -149,6 +153,7 @@ namespace BusBookingRestApi.Controllers
             }
         }
 
+
         [HttpGet("GetInternationalTrips", Name = "GetInternationalTrips")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -161,7 +166,7 @@ namespace BusBookingRestApi.Controllers
             }
             else
             {
-                return NotFound("No National Trips found");
+                return NotFound("No International Trips found");
             }
         }
 
@@ -211,6 +216,7 @@ namespace BusBookingRestApi.Controllers
         }
 
 
+        [Authorize(Roles = "Admin")]
         [HttpGet("GetTripDTOByName/{TripName}", Name = "GetTripDTOByName")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -240,11 +246,12 @@ namespace BusBookingRestApi.Controllers
                 return Ok(dto);
             }else
             {
-                return NotFound("No Booked Seats found");
+                return NotFound("No trip found");
             }
         }
 
 
+        [Authorize]
         [HttpPost("BookFromClient", Name = "BookFromClient")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -267,12 +274,23 @@ namespace BusBookingRestApi.Controllers
         }
 
 
-        [HttpGet("GetAllBooks/{CustomerId}", Name = "GetAllBooks")]
+        [Authorize]
+        [HttpGet("GetAllBooks/{customerId}", Name = "GetAllBooks")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<IEnumerable<BooksDTO>>> GetAllBooksForCustomer(int CustomerId)
-        {
-            List<BooksDTO> books = await BookingsBLL.GetBooksDTOs(CustomerId);
+        public async Task<ActionResult<IEnumerable<BooksDTO>>> GetAllBooksForCustomer(int customerId, [FromServices] IAuthorizationService authorizationService)
+        { // جلب الـ claim من التوكن للتأكد قبل أي عملية (optional but safe)
+            var customerIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(customerIdClaim) || !int.TryParse(customerIdClaim, out int authenticatedCustomerId) || authenticatedCustomerId < 1)
+            {
+                return BadRequest("Invalid token.");
+            }
+
+            var authResult = await authorizationService.AuthorizeAsync(User, customerId, "ClientOwnerOrAdmin");
+            if (!authResult.Succeeded)
+                return Forbid();
+
+            List<BooksDTO> books = await BookingsBLL.GetBooksDTOs(customerId);
             if (books.Count > 0)
             {
                 return Ok(books);

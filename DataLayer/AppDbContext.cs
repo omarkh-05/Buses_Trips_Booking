@@ -13,7 +13,7 @@ namespace DataLayer
     {
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseLazyLoadingProxies().UseSqlServer(Connection.ConnectionString);
+            optionsBuilder.UseSqlServer(Connection.ConnectionString);
         }
 
         public DbSet<Users> Users { get; set; }

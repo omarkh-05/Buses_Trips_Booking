@@ -1,21 +1,19 @@
 ﻿using BussinessLayer;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using Newtonsoft.Json;
-using Swashbuckle.AspNetCore.SwaggerGen;
+using StudentApi.Authorization;
 using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
-builder.Services.AddScoped<CustomersBLL>(); // ← مهم جدًا dependency injection ل CustomersBLL
+
+// مهم جدًا dependency injection ل CustomersBLL
+builder.Services.AddScoped<ICustomersBLL,CustomersBLL>();
+builder.Services.AddScoped<IAuthService,AuthServiceBLL>();
 
 #region Swagger
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -156,12 +154,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 
 #region Authorization
-builder.Services.AddSingleton<IAuthorizationHandler, StudentOwnerOrAdminHandler>();
+builder.Services.AddSingleton<IAuthorizationHandler, ClientOwnerOrAdminHandler>();
 
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy("StudentOwnerOrAdmin", policy =>
-        policy.Requirements.Add(new StudentOwnerOrAdminRequirement()));
+    options.AddPolicy("ClientOwnerOrAdmin", policy =>
+        policy.Requirements.Add(new ClientOwnerOrAdminRequirement()));
 });
 
 #endregion
@@ -201,24 +199,25 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseCors("StudentApiCorsPolicy");
+app.UseCors("BusBookingApiCorsPolicy");
 
 #region RateLimit 
-// must be placed before authentication and authorization middleware to ensure that rate limiting is applied before any authentication or authorization logic is executed.
-// This way, we can prevent excessive login attempts and protect our API from abuse.
 app.UseRateLimiter();
 
-// optinal
 app.Use(async (context, next) =>
 {
     await next();
 
     if (context.Response.StatusCode == StatusCodes.Status429TooManyRequests)
     {
+        // سجل فقط الرسالة، لا تسلسل context
+        context.Response.ContentType = "text/plain";
         await context.Response.WriteAsync("Too many login attempts. Please try again later.");
     }
 });
 #endregion
+
+app.UseAuthentication();
 
 app.UseAuthorization();
 

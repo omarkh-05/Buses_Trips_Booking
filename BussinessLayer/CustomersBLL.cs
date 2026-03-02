@@ -5,7 +5,21 @@ using System.Threading.Tasks;
 
 namespace BussinessLayer
 {
-    public class CustomersBLL
+    public interface ICustomersBLL
+    {
+        Customers CurrentCustomer { get; set; }
+        bool Add();
+        bool Register(Customers customer);
+        bool Update();
+        bool UpdateRefreshToken(Customers customers);
+        bool Delete(int customerID);
+        Task<DataTable> GetAllCustomers();
+        Task<Customers?> GetCustomerByID(int customerID);
+        Task<Customers?> GetGetCustomerByPhoneNumber(string phoneNumber);
+        Customers? GetCustomerForLogin(string phoneNumber, string password);
+        bool Save();
+    }
+    public class CustomersBLL : ICustomersBLL
     {
         private enum enMode { AddMode = 1, UpdateMode = 2 };
         private enMode _mode = enMode.AddMode;
@@ -36,11 +50,20 @@ namespace BussinessLayer
             _customer.CustomerID = CustomersDLL.Add(_customer);
             return _customer.CustomerID > 0;
         }
-
+        public bool Register(Customers customer)
+        {
+            customer.CustomerID = CustomersDLL.Add(customer);
+            return customer.CustomerID > 0;
+        }
         // UPDATE
         public bool Update()
         {
             return CustomersDLL.Update(_customer);
+        }
+
+        public bool UpdateRefreshToken(Customers customers)
+        {
+            return CustomersDLL.Update(customers);
         }
 
         // DELETE
@@ -50,7 +73,7 @@ namespace BussinessLayer
         }
 
         // GET ALL
-        public static Task<DataTable> GetAllCustomers()
+        public Task<DataTable> GetAllCustomers()
         {
             return CustomersDLL.GetAllCustomers();
         }
@@ -61,8 +84,14 @@ namespace BussinessLayer
             return CustomersDLL.GetCustomerByID(customerID);
         }
 
+        // GET BY Phone Number
+        public Task<Customers?> GetGetCustomerByPhoneNumber(string phoneNumber)
+        {
+            return CustomersDLL.GetCustomerByPhoneNumber(phoneNumber);
+        }
+
         // LOGIN
-        public Customers GetCustomerForLogin(string phoneNumber, string password)
+        public Customers? GetCustomerForLogin(string phoneNumber, string password)
         {
             return CustomersDLL.GetCustomerForLogin(phoneNumber, password);
         }

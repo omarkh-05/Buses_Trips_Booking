@@ -164,6 +164,29 @@ namespace DataLayer
             }
         }
 
+        // GET BY Phone Number
+        public static async Task<Customers?> GetCustomerByPhoneNumber(string phoneNumber)
+        {
+            try
+            {
+                using var db = new AppDbContext();
+
+                return await db.Customers
+                               .Include(c => c.CustomerCountry)
+                               .FirstOrDefaultAsync(c => c.PhoneNumber == phoneNumber);
+            }
+            catch (Exception ex)
+            {
+                var errorMessage = ex.Message;
+                if (ex.InnerException != null)
+                    errorMessage += "\nInner Exception: " + ex.InnerException.Message;
+
+                EventLog.WriteEntry("Application", "GetCustomerByPhoneNumber Error: " + errorMessage, EventLogEntryType.Error);
+
+                return null;
+            }
+        }
+
         // LOGIN
         public static Customers? GetCustomerForLogin(string phoneNumber, string hashedPassword)
         {

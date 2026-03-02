@@ -34,6 +34,14 @@ namespace ModelsLayer
 
         public bool IsActive { get; set; }
 
+        [Required, MaxLength(100)]
+        public string Role { get; set; } = "Customer";
+
+        // ===== إضافة الحقول الخاصة بالـ Refresh Token =====
+        public string? RefreshTokenHash { get; set; }          // Hash للـ Refresh Token
+        public DateTime? RefreshTokenExpiresAt { get; set; }  // تاريخ انتهاء الصلاحية
+        public DateTime? RefreshTokenRevokedAt { get; set; }  // متى تم إلغاء التوكن (logout)
+
         // Navigation
         [JsonIgnore]
         public virtual ICollection<Bookings>? Booking { get; set; }
