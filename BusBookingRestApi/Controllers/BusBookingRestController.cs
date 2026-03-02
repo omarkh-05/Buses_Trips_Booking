@@ -43,7 +43,31 @@ namespace BusBookingRestApi.Controllers
             return BadRequest("Error while saving customer");
         }
 
-
+        [HttpGet("MyProfile", Name = "Profile")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<Customers>> GetProfile()
+        {
+            try
+            {
+                var customerId = User.FindFirstValue(ClaimTypes.NameIdentifier);// بطلع معك في الكلايمز الي مبعوته في التوكن التابع لليوزر الي عمل اوثنتيكيت ونادى الاندبوينت هاي ClaimTypes.NameIdentifier هاي يعني جيبلي اول 
+                if (Convert.ToInt32(customerId) < 0)
+                {
+                    return BadRequest("Customer ID not found in token");
+                }
+                var customer = await _customersBLL.GetCustomerByID(int.Parse(customerId));
+                if (customer == null)
+                {
+                    return NotFound("Customer not found");
+                }
+                return Ok(customer);
+            }
+            catch (Exception ex)
+            {
+                return NotFound("Customer not found");
+            }
+        }
 
         [HttpPost("Customers/Login", Name = "CustomersLogin")]
         [ProducesResponseType(StatusCodes.Status200OK)]
