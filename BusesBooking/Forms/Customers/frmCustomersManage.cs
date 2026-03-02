@@ -36,7 +36,7 @@ namespace AdminBusesBooking.Forms.Customers
 
         private async Task LoadCustomersAsync()
         {
-            _dtAllCustomers = await CustomersBLL.GetAllCustomers();
+            _dtAllCustomers = await _customerBLL.GetAllCustomers();
             _dtCustomers = _dtAllCustomers.DefaultView.ToTable(false, "CustomerID", "FullName", "PhoneNumber", "Email", "IsActive", "DateOfBirth");
         }
 
