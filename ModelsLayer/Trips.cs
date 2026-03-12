@@ -46,10 +46,15 @@ namespace ModelsLayer
         [ForeignKey(nameof(CreatedByUser))]
         public short CreatedByUserID { get; set; }
 
+        
+        public short TripTimeID { get; set; }
+
         // Navigation
         public virtual Routes Route { get; set; }
         public virtual Buses Bus { get; set; }
         public virtual Users CreatedByUser { get; set; }
         public virtual ICollection<Bookings>? Booking { get; set; }
+        [ForeignKey(nameof(TripTimeID))]
+        public virtual TripTimes TripTimes { get; set; }
     }
 }

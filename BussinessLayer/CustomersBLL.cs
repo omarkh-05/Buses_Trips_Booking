@@ -1,6 +1,8 @@
 ﻿using DataLayer;
 using ModelsLayer;
 using System.Data;
+using BussinessLayer.Helper;
+using Microsoft.AspNetCore.Http;
 using System.Threading.Tasks;
 
 namespace BussinessLayer
@@ -11,6 +13,7 @@ namespace BussinessLayer
         bool Add();
         bool Register(Customers customer);
         bool Update();
+        Task<bool> UpdateProfileWithImage(Customers customer, IFormFile? imageFile);
         bool UpdateRefreshToken(Customers customers);
         bool Delete(int customerID);
         Task<DataTable> GetAllCustomers();
@@ -59,6 +62,25 @@ namespace BussinessLayer
         public bool Update()
         {
             return CustomersDLL.Update(_customer);
+        }
+
+        public async Task<bool> UpdateProfileWithImage(Customers customer, IFormFile? imageFile)
+        {
+            if (imageFile != null)
+            {
+                try
+                {
+                    var imagePath = await ImageHelper.SaveImageAsync(imageFile, "images/customers");
+                    customer.ImgUrl = imagePath;
+                }
+                catch (Exception ex)
+                {
+                    // هنا يمكن تسجيل خطأ الصورة أو رمي استثناء حسب الحاجة
+                    return false;
+                }
+            }
+
+            return CustomersDLL.Update(customer); // تستخدم الدالة الموجودة لديك
         }
 
         public bool UpdateRefreshToken(Customers customers)

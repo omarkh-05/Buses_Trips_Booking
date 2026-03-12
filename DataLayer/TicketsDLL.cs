@@ -5,6 +5,7 @@ using System.Data;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using ModelsLayer;
+using ModelsLayer.Api_DTO_S;
 
 namespace DataLayer
 {
@@ -76,6 +77,37 @@ namespace DataLayer
             {
                 WriteEventLog("GetTicketByID Error", ex);
                 return null;
+            }
+        }
+
+        // ================================
+        //  Get Ticket By BookingID
+        // ================================
+        public static async Task<List<TicketsDTO>> GetTicketByBookingId(int bookingId)
+        {
+            try
+            {
+                using var db = new AppDbContext();
+
+                return await db.Tickets.Where(t => t.BookingID == bookingId)
+                    .Select(t => new TicketsDTO
+                    {
+                        TicketID  = t.TicketID,
+                        PassengerName = t.PassengerName, 
+                        PassengerGender = t.PassengerGender,
+                        NationalID=t.NationalID,
+                        IssueDate =t.IssueDate,
+                        SeatNumber=t.SeatNumber,
+                        QRCode    =t.QRCode,
+                        PersonType=t.PersonType,
+                        BookingID = t.BookingID
+                    }
+                    ).ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                WriteEventLog("GetTicketByID Error", ex);
+                return new List<TicketsDTO>();
             }
         }
 

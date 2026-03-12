@@ -4,6 +4,7 @@ using DataLayer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DataLayer.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260309233910_update_TripByChangingTripTimeID_Forigenkey")]
+    partial class update_TripByChangingTripTimeID_Forigenkey
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -52,9 +55,6 @@ namespace DataLayer.Migrations
 
                     b.Property<byte>("DisabledCount")
                         .HasColumnType("tinyint");
-
-                    b.Property<bool>("IsCounted")
-                        .HasColumnType("bit");
 
                     b.Property<bool>("PaymentStatus")
                         .HasColumnType("bit");
@@ -311,13 +311,6 @@ namespace DataLayer.Migrations
                     b.Property<DateTime>("DateOfBirth")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("Discription")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<double>("DistanceKm")
-                        .HasColumnType("float");
-
                     b.Property<string>("Email")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
@@ -327,18 +320,8 @@ namespace DataLayer.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<string>("ImgUrl")
-                        .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
-
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
-
-                    b.Property<decimal>("MoneySpent")
-                        .HasColumnType("decimal(8,2)");
-
-                    b.Property<int>("NumberOfCountryVisited")
-                        .HasColumnType("int");
 
                     b.Property<string>("Password")
                         .IsRequired()

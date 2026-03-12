@@ -4,6 +4,7 @@ using DataLayer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DataLayer.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260311183505_Update_CustomerInfo")]
+    partial class Update_CustomerInfo
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -52,9 +55,6 @@ namespace DataLayer.Migrations
 
                     b.Property<byte>("DisabledCount")
                         .HasColumnType("tinyint");
-
-                    b.Property<bool>("IsCounted")
-                        .HasColumnType("bit");
 
                     b.Property<bool>("PaymentStatus")
                         .HasColumnType("bit");
@@ -315,7 +315,7 @@ namespace DataLayer.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
-                    b.Property<double>("DistanceKm")
+                    b.Property<double?>("DistanceKm")
                         .HasColumnType("float");
 
                     b.Property<string>("Email")
@@ -334,10 +334,10 @@ namespace DataLayer.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
-                    b.Property<decimal>("MoneySpent")
+                    b.Property<decimal?>("MoneySpent")
                         .HasColumnType("decimal(8,2)");
 
-                    b.Property<int>("NumberOfCountryVisited")
+                    b.Property<int?>("NumberOfCountryVisited")
                         .HasColumnType("int");
 
                     b.Property<string>("Password")

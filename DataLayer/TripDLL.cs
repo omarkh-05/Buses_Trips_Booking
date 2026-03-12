@@ -288,7 +288,7 @@ namespace DataLayer
                     .Include(t => t.Route)
                     .Include(t => t.Bus)
                     .Include(t => t.CreatedByUser)
-                    .FirstOrDefaultAsync(t => t.TripName == TripName);
+                    .FirstOrDefaultAsync(t => t.TripName.Trim().ToLower() == TripName.Trim().ToLower());
             }
             catch (Exception ex)
             {
@@ -314,36 +314,48 @@ namespace DataLayer
             }
             return TripID;
         }
-        public static async Task<List<string>> GetInterNationalTripsName()
+        public static async Task<List<Trip_IDName>> GetInterNationalTripsName()
         {
             try
             {
                 using var db = new AppDbContext();
                 return await db.Trips
                     .Where(t => t.IsInternational == true && t.Status == "On Going")
-                    .Select(t => t.TripName)
+                    .Select(t => new Trip_IDName
+                    {
+                        tripId = t.TripID,
+                        tripName = t.TripName,
+                        availableSeats = t.AvailableSeats,
+                        tripTimesId = t.TripTimeID
+                    })
                     .ToListAsync();
             }
             catch (Exception ex)
             {
                 WriteEventLog("InterGetNationalTripsName Error", ex);
-                return new List<string>();
+                return new List<Trip_IDName>();
             }
         }
-        public static async Task<List<string>> GetNationalTripsName()
+        public static async Task<List<Trip_IDName>> GetNationalTripsName()
         {
             try
             {
                 using var db = new AppDbContext();
                 return await db.Trips
                     .Where(t => t.IsInternational == false && t.Status == "On Going")
-                    .Select(t => t.TripName)
+                    .Select(t => new Trip_IDName
+                    {
+                        tripId = t.TripID,
+                        tripName = t.TripName,
+                        availableSeats = t.AvailableSeats,
+                        tripTimesId = t.TripTimeID
+                    })
                     .ToListAsync();
             }
             catch (Exception ex)
             {
                 WriteEventLog("GetNationalTripsName Error", ex);
-                return new List<string>();
+                return new List<Trip_IDName>();
             }
         }
 

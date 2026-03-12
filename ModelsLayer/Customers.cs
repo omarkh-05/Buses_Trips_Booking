@@ -22,7 +22,7 @@ namespace ModelsLayer
 
         [MaxLength(100)]
 
-        public string? Email { get; set; }
+        public string? Email { get; set; } = null;
 
         [ForeignKey("CustomerCountry")]
         public short CountryId { get; set; }
@@ -36,6 +36,20 @@ namespace ModelsLayer
 
         [Required, MaxLength(100)]
         public string Role { get; set; } = "Customer";
+
+        public int NumberOfCountryVisited { get; set; } = 0;
+
+        [Column(TypeName = "decimal(8,2)")]
+        public decimal MoneySpent { get; set; } = 0;
+
+        public double DistanceKm { get; set; } = 0;
+
+        [MaxLength(1000)]
+        public string? Discription { get; set; } = null;
+
+        [MaxLength(300)]
+        public string? ImgUrl { get; set; } = null;
+
 
         // ===== إضافة الحقول الخاصة بالـ Refresh Token =====
         public string? RefreshTokenHash { get; set; }          // Hash للـ Refresh Token

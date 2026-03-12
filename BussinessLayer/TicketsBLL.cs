@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using DataLayer;
 using ModelsLayer;
+using ModelsLayer.Api_DTO_S;
 
 namespace BussinessLayer
 {
@@ -17,6 +18,11 @@ namespace BussinessLayer
         public Task<Tickets?> GetTicketByID(int ticketID)
         {
             return TicketsDLL.GetTicketByID(ticketID);
+        }
+
+        public static Task<List<TicketsDTO>> GetTicketByBookingId(int bookingId)
+        {
+            return TicketsDLL.GetTicketByBookingId(bookingId);
         }
 
 

@@ -4,6 +4,7 @@ using DataLayer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DataLayer.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260309215805_Add_TripTimes")]
+    partial class Add_TripTimes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -52,9 +55,6 @@ namespace DataLayer.Migrations
 
                     b.Property<byte>("DisabledCount")
                         .HasColumnType("tinyint");
-
-                    b.Property<bool>("IsCounted")
-                        .HasColumnType("bit");
 
                     b.Property<bool>("PaymentStatus")
                         .HasColumnType("bit");
@@ -311,13 +311,6 @@ namespace DataLayer.Migrations
                     b.Property<DateTime>("DateOfBirth")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("Discription")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<double>("DistanceKm")
-                        .HasColumnType("float");
-
                     b.Property<string>("Email")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
@@ -327,18 +320,8 @@ namespace DataLayer.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<string>("ImgUrl")
-                        .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
-
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
-
-                    b.Property<decimal>("MoneySpent")
-                        .HasColumnType("decimal(8,2)");
-
-                    b.Property<int>("NumberOfCountryVisited")
-                        .HasColumnType("int");
 
                     b.Property<string>("Password")
                         .IsRequired()
@@ -620,7 +603,12 @@ namespace DataLayer.Migrations
                     b.Property<TimeSpan?>("Time7")
                         .HasColumnType("time7");
 
+                    b.Property<int?>("TripsTripID")
+                        .HasColumnType("int");
+
                     b.HasKey("TripTimeID");
+
+                    b.HasIndex("TripsTripID");
 
                     b.ToTable("TripTimes");
                 });
@@ -685,8 +673,6 @@ namespace DataLayer.Migrations
                     b.HasIndex("CreatedByUserID");
 
                     b.HasIndex("RouteID");
-
-                    b.HasIndex("TripTimeID");
 
                     b.ToTable("Trips");
                 });
@@ -885,6 +871,14 @@ namespace DataLayer.Migrations
                     b.Navigation("Booking");
                 });
 
+            modelBuilder.Entity("ModelsLayer.TripTimes", b =>
+                {
+                    b.HasOne("ModelsLayer.Trips", null)
+                        .WithMany("TripTimes")
+                        .HasForeignKey("TripsTripID")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
             modelBuilder.Entity("ModelsLayer.Trips", b =>
                 {
                     b.HasOne("ModelsLayer.Buses", "Bus")
@@ -905,19 +899,11 @@ namespace DataLayer.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("ModelsLayer.TripTimes", "TripTimes")
-                        .WithMany("Trips")
-                        .HasForeignKey("TripTimeID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.Navigation("Bus");
 
                     b.Navigation("CreatedByUser");
 
                     b.Navigation("Route");
-
-                    b.Navigation("TripTimes");
                 });
 
             modelBuilder.Entity("ModelsLayer.Bookings", b =>
@@ -970,14 +956,11 @@ namespace DataLayer.Migrations
                     b.Navigation("Trip");
                 });
 
-            modelBuilder.Entity("ModelsLayer.TripTimes", b =>
-                {
-                    b.Navigation("Trips");
-                });
-
             modelBuilder.Entity("ModelsLayer.Trips", b =>
                 {
                     b.Navigation("Booking");
+
+                    b.Navigation("TripTimes");
                 });
 
             modelBuilder.Entity("ModelsLayer.Users", b =>

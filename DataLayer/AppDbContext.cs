@@ -30,6 +30,7 @@ namespace DataLayer
         public DbSet<Payments> Payments { get; set; }
         public DbSet<CustomersCountries> CustomersCountries { get; set; }
         public DbSet<TripDTO> TripDTOs { get; set; }
+        public DbSet<TripTimes> TripTimes { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

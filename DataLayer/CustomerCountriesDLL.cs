@@ -1,4 +1,5 @@
-﻿using ModelsLayer;
+﻿using Microsoft.EntityFrameworkCore;
+using ModelsLayer;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -24,6 +25,22 @@ namespace DataLayer
             {
                 EventLog.WriteEntry("Application", "An error occurred while retrieving countries: " + ex.Message);
                 return new List<CustomersCountries>();
+            }
+        }
+
+        public static async Task<string?> GetCountryNameById(short countryId)
+        {
+            try
+            {
+                var db = new AppDbContext();
+                return await db.CustomersCountries.Where(c => c.CountryID == countryId)
+                   .Select(c => c.CountryName)
+                   .FirstOrDefaultAsync();
+            }
+            catch (Exception ex)
+            {
+                EventLog.WriteEntry("Application", "An error occurred while retrieving countries: " + ex.Message);
+                return "";
             }
         }
     }

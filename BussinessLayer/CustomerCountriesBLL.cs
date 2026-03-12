@@ -15,5 +15,10 @@ namespace BussinessLayer
         {
             return await CustomerCountriesDLL.GetAllCountries();
         }
+
+        public static async Task<string?> GetCountryNameById(short countryId)
+        {
+            return await CustomerCountriesDLL.GetCountryNameById(countryId);
+        }
     }
 }

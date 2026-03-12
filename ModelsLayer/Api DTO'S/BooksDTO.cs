@@ -11,32 +11,15 @@ namespace ModelsLayer
     public class BooksDTO
     {
         public int BookingID { get; set; }
-
+        public string TripName { get; set; } // جديد
         public DateTime TravelDate { get; set; }
-
         public string Class { get; set; }
-
-        public byte AdultCount { get; set; }
-        public byte ChildCount { get; set; }
-        public byte DisabledCount { get; set; }
-
+        public byte PassengerCount { get; set; }
         public string PhoneNumber { get; set; }
-
         public string Status { get; set; }
-
-        public DateTime CreatedAt { get; set; }
-
         public string TravelType { get; set; }
-
         public bool PaymentStatus { get; set; }
-
         public decimal TotalAmount { get; set; }
 
-
-        public int? CustomerID { get; set; }
-
-        public int TripID { get; set; }
-
-        public short? CreatedBy { get; set; }
     }
 }

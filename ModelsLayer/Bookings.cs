@@ -41,6 +41,7 @@ namespace ModelsLayer
         [Column(TypeName = "decimal(8,2)")]
         public decimal TotalAmount { get; set; }
 
+        public bool IsCounted { get; set; } = false;
 
         [ForeignKey(nameof(Customer))]
         public int? CustomerID { get; set; }
@@ -50,6 +51,7 @@ namespace ModelsLayer
 
         [ForeignKey(nameof(CreatedByUser))]
         public short? CreatedBy { get; set; }
+
 
         // Navigation
         public virtual Customers? Customer { get; set; }

@@ -1,8 +1,9 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using BussinessLayer;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using BussinessLayer;
-using StudentApi.Model.Auth;
 using ModelsLayer.Auth;
+using StudentApi.Model.Auth;
+using System.Security.Claims;
 
 namespace BusBookingRestApi.Controllers
 {
@@ -19,20 +20,35 @@ namespace BusBookingRestApi.Controllers
             _authService = authService;
         }
 
-        [HttpPost("login")]
+        [HttpPost("Login")]
         [EnableRateLimiting("AuthLimiter")]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
             try
             {
+                if (string.IsNullOrEmpty(request.PhoneNumber) || string.IsNullOrEmpty(request.Password))
+                    return BadRequest("Phone number and password are required");
+
                 var result = await _authService.LoginAsync(request);
+
+
+                Response.Cookies.Append("refreshToken", result.RefreshToken, new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = false, // in production it must be true
+                    SameSite = SameSiteMode.None, // in production it must be SameSiteMode.Strict - مهم عند cross-origin (127.0.0.1:5500 → localhost:7018)
+                    Expires = DateTime.UtcNow.AddDays(7),
+                    Path = "/"
+                });
+
                 return Ok(result);
             }
             catch (UnauthorizedAccessException)
             {
-                return Unauthorized("Invalid credentials");
+                return NotFound("Invalid credentials");
             }
         }
 
@@ -40,31 +56,71 @@ namespace BusBookingRestApi.Controllers
         [HttpPost("Register")]
         [EnableRateLimiting("AuthLimiter")]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Register([FromBody] RegisterRequest request)
         {
             try
             {
-                var result = _authService.RegisterAsync(request);
-                return Ok(result);
+                if(request == null)
+                {
+                    return BadRequest("Invalid registration data");
+                }
+                await _authService.RegisterAsync(request);
+                return Ok(new { message = "User registered successfully" });
             }
             catch (UnauthorizedAccessException)
             {
-                return Unauthorized("Invalid credentials");
+                return BadRequest("Invalid credentials");
             }
         }
 
 
-        [HttpPost("refresh")]
+        /*  [HttpPost("Refresh")]
+          [EnableRateLimiting("AuthLimiter")]
+          [ProducesResponseType(StatusCodes.Status200OK)]
+          [ProducesResponseType(StatusCodes.Status403Forbidden)]
+          public async Task<IActionResult> Refresh([FromBody] RefreshRequest request)
+          {
+              try
+              {
+                  var result = await _authService.RefreshAsync(request);
+                  return Ok(result);
+              }
+              catch (UnauthorizedAccessException ex)
+              {
+                  return Unauthorized(ex.Message);
+              }
+          }*/
+
+
+        [HttpPost("Refresh")]
         [EnableRateLimiting("AuthLimiter")]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Refresh([FromBody] RefreshRequest request)
         {
             try
             {
-                var result = await _authService.RefreshAsync(request);
-                return Ok(result);
+                if(string.IsNullOrEmpty(request.PhoneNumber))
+                    return BadRequest("Phone number is required");
+
+                // اقرأ refresh token من HttpOnly cookie
+                if (!Request.Cookies.TryGetValue("refreshToken", out var refreshToken))
+                    throw new UnauthorizedAccessException("Refresh token missing");
+
+                var result = await _authService.RefreshAsync(refreshToken,request.PhoneNumber);
+
+                // ضع refresh token الجديد في HttpOnly cookie
+                Response.Cookies.Append("refreshToken", result.RefreshToken, new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = false, // in production it must be true
+                    SameSite = SameSiteMode.None, // in production it must be SameSiteMode.Strict - مهم عند cross-origin (127.0.0.1:5500 → localhost:7018)
+                    Expires = DateTime.UtcNow.AddDays(7),
+                    Path= "/"
+                });
+
+                return Ok(new { AccessToken = result.AccessToken });
             }
             catch (UnauthorizedAccessException ex)
             {
@@ -73,15 +129,25 @@ namespace BusBookingRestApi.Controllers
         }
 
 
-        [HttpPost("logout")]
+        [HttpPost("Logout")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> Logout([FromBody] LogoutRequest request)
+        public async Task<IActionResult> Logout( [FromBody] LogoutRequest request)
         {
-            if (await _authService.LogoutAsync(request))
+            if (string.IsNullOrEmpty(request.PhoneNumber))
+                return BadRequest("Phone number is required");
+
+            if (!Request.Cookies.TryGetValue("refreshToken", out var refreshToken))
+                throw new UnauthorizedAccessException("Refresh token missing");
+
+            if (await _authService.LogoutAsync(refreshToken,request))
+            {
+                Response.Cookies.Delete("refreshToken");
                 return Ok("Logged out successfully");
+            }
 
             return BadRequest("Logout Error Try Again");
         }
+
     }
 }

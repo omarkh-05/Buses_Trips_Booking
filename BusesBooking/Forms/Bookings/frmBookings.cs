@@ -160,7 +160,7 @@ namespace AdminBusesBooking.Forms.Booking
             _booking.TravelType = rbInternational.Checked ? "International" : "National";
 
 
-            _booking.TotalAmount = await BookingsBLL.CalculateTotalAmount(cbTrip.Texts, txtAdult.Value, txtChild.Value, txtDisabledPerson.Value);
+            _booking.TotalAmount = await _bookingBll.CalculateTotalAmount(cbTrip.Texts, txtAdult.Value, txtChild.Value, txtDisabledPerson.Value);
             _booking.CustomerID = null;
             _booking.TripID = await BookingsBLL.GetTripIDByName(cbTrip.Texts);
 
@@ -310,7 +310,7 @@ namespace AdminBusesBooking.Forms.Booking
             Cursor = Cursors.WaitCursor;
             btnTicketsInfoSave.Enabled = false;
 
-            bool ok = await bookingBll.SaveCompleteAsync(tickets, payment);
+            bool ok = await bookingBll.SaveCompleteAsync(_booking,tickets, payment);
 
             Cursor = Cursors.Default;
             btnTicketsInfoSave.Enabled = true;

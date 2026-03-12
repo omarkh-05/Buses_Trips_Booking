@@ -1,4 +1,5 @@
 ﻿using DataLayer;
+using Microsoft.EntityFrameworkCore;
 using ModelsLayer;
 using System;
 using System.Collections.Generic;
@@ -8,7 +9,28 @@ using System.Threading.Tasks;
 
 namespace BussinessLayer
 {
-    public class BookingsBLL
+     public interface IBookingsBLL
+    {
+     //   bool Add();
+     //   bool Update();
+     //   bool Delete(int bookingID);
+     //   Task<List<int>?> GetBookingAllID();
+     //   Task<List<BooksDTO>> GetBooksDTOs(int CustomerID);
+     //   Task<List<Trip_IDName>> GetInterNationalTripsName();
+     //   Task<List<Trip_IDName>> GetNationalTripsName();
+     //   Task<int> GetTripIDByName(string tripName);
+     //   Task<bool> CheackTripClassAndBookCLass(string tripName, string bookClass);
+     //   Task<decimal> CalculateTotalAmount(string TripName, decimal adultCount, decimal childCount, decimal disabledCount);
+     //   Task<Bookings?> GetBookingByID(int bookingID);
+     //   Task<bool> SaveTicketsAsync(int bookingId, int tripId, List<Tickets> tickets);
+       Task<bool> SaveCompleteAsync(Bookings bookings, List<Tickets> tickets, Payments payment);
+       Task<decimal> CalculateTotalAmount(string TripName, decimal adultCount, decimal childCount, decimal disabledCount);
+        Task<List<BooksDTO>> GetAllBooksDTOForCustomer(int CustomerID);
+        Task<bool> IsBookingOwnedByCustomer(int bookingId, int customerId);
+        Task<(bool Success, string? ErrorMessage)> UpdateCustomerStats(Customers customer);
+    }
+
+    public class BookingsBLL : IBookingsBLL
     {
         private enum enMode { AddMode = 1, UpdateMode = 2 }
         private enMode _mode = enMode.AddMode;
@@ -56,11 +78,11 @@ namespace BussinessLayer
         // Get all bookings as DataTable
         public static Task<DataTable> GetAllBookings() => BookingsDLL.GetAllBookings();
 
-        public static async Task<List<BooksDTO>> GetBooksDTOs(int CustomerID) => await BookingsDLL.GetAllBooksDTOForCusotmer(CustomerID);
+        public async Task<List<BooksDTO>> GetAllBooksDTOForCustomer(int CustomerID) => await BookingsDLL.GetAllBooksDTOForCustomer(CustomerID);
 
-        public static async Task<List<string>> GetInterNationalTripsName() => await TripBLL.GetInterNationalTripsName();
+        public static async Task<List<Trip_IDName>> GetInterNationalTripsName() => await TripBLL.GetInterNationalTripsName();
 
-        public static async Task<List<string>> GetNationalTripsName() => await TripBLL.GetNationalTripsName();
+        public static async Task<List<Trip_IDName>> GetNationalTripsName()      =>   await TripBLL.GetNationalTripsName();
 
         public static async Task<int> GetTripIDByName(string tripName)
         {
@@ -83,12 +105,15 @@ namespace BussinessLayer
             }
         }
 
-        public static async Task<decimal> CalculateTotalAmount( string TripName , decimal adultCount, decimal childCount, decimal disabledCount)
+        public async Task<decimal> CalculateTotalAmount(string TripName , decimal adultCount, decimal childCount, decimal disabledCount)
         {
 
             TripBLL tripBLL = new TripBLL();
             var trip = await tripBLL.GetTripByName(TripName);
-
+            if(trip == null)
+            {
+                throw new ArgumentException($"Trip with name '{TripName}' not found");
+            }
             decimal ChildPrice = trip.Price * 0.5M;
             decimal PersonPrice = trip.Price;
             decimal TotalAmount = (adultCount * PersonPrice) + (childCount * ChildPrice) + (disabledCount * PersonPrice);
@@ -98,6 +123,51 @@ namespace BussinessLayer
 
         // Get booking by ID
         public static Task<Bookings?> GetBookingByID(int bookingID) => BookingsDLL.GetBookingByID(bookingID);
+        public static async Task<List<Bookings>?> GetBookingByCustomerID(int customerId) => await BookingsDLL.GetBookingByCustomerID(customerId);
+
+
+        public async Task<bool> IsBookingOwnedByCustomer(int bookingId, int customerId)
+        {
+            return await BookingsDLL.IsBookingOwnedByCustomer(bookingId, customerId);
+        }
+
+        public async Task<(bool Success, string? ErrorMessage)> UpdateCustomerStats(Customers customer)
+        {
+            try
+            {
+                var bookings = await GetBookingByCustomerID(customer.CustomerID);
+                bool anyBookingUpdated = false;
+
+                foreach (var booking in bookings)
+                {
+                    if (booking.Status == "Done" && booking.IsCounted == false)
+                    {
+                        customer.MoneySpent += booking.TotalAmount;
+                        if (booking.Trip?.Route != null)
+                            customer.DistanceKm += booking.Trip.Route.DistanceKM;
+                        if (booking.TravelType != "National")
+                            customer.NumberOfCountryVisited += 1;
+
+                        booking.IsCounted = true;
+
+                        if (!BookingsDLL.Update(booking))
+                            return (false, $"Failed to update booking {booking.BookingID}");
+
+                        anyBookingUpdated = true;
+                    }
+                }
+
+                if (!CustomersDLL.Update(customer))
+                    return (false, "Failed to update customer");
+
+                // إذا لم يحدث أي شيء، هذا ليس خطأ، اعتبره نجاح
+                return (true, null);
+            }
+            catch (Exception ex)
+            {
+                return (false, ex.Message);
+            }
+        }
 
 
         public async Task<bool> SaveTicketsAsync(int bookingId, int tripId, List<Tickets> tickets)
@@ -106,9 +176,9 @@ namespace BussinessLayer
         }
 
 
-        public async Task<bool> SaveCompleteAsync(List<Tickets> tickets, Payments payment)
+        public async Task<bool> SaveCompleteAsync(Bookings bookings ,List<Tickets> tickets, Payments payment)
         {
-            return await BookingsDLL.SaveBookingWithTicketsAndPaymentAsync(CurrentBooking, tickets, payment);
+            return await BookingsDLL.SaveBookingWithTicketsAndPaymentAsync(bookings, tickets, payment);
         }
 
 

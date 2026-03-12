@@ -51,8 +51,8 @@ namespace BussinessLayer
         public static Task<DataTable> GetAllTrips() => TripDLL.GetAllTrips();
 
 
-        public static Task<List<string>> GetInterNationalTripsName() => TripDLL.GetInterNationalTripsName();
-        public static Task<List<string>> GetNationalTripsName() => TripDLL.GetNationalTripsName();
+        public static Task<List<Trip_IDName>> GetInterNationalTripsName() => TripDLL.GetInterNationalTripsName();
+        public static Task<List<Trip_IDName>> GetNationalTripsName() => TripDLL.GetNationalTripsName();
 
 
         public static List<TripDTO> GetTripDTOs() => TripDLL.GetAllDTOTrips();

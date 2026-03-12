@@ -1,4 +1,5 @@
-﻿using BCrypt.Net;
+﻿using Azure;
+using BCrypt.Net;
 using DataLayer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
@@ -7,6 +8,7 @@ using ModelsLayer.Auth;
 using StudentApi.Model.Auth;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Security.Claims;
@@ -20,8 +22,8 @@ namespace BussinessLayer
     {
         Task<TokenResponse> LoginAsync(LoginRequest request);
         Task RegisterAsync(RegisterRequest request);
-        Task<TokenResponse> RefreshAsync(RefreshRequest request);
-        Task<bool> LogoutAsync(LogoutRequest request);
+        Task<TokenResponse> RefreshAsync(string refreshToken,string phoneNumber);
+        Task<bool> LogoutAsync(string refreshToken, LogoutRequest request);
     }
 
     public class AuthServiceBLL : IAuthService
@@ -37,6 +39,10 @@ namespace BussinessLayer
 
         public async Task<TokenResponse> LoginAsync(LoginRequest request)
         {
+            if (string.IsNullOrWhiteSpace(request.PhoneNumber) ||
+                string.IsNullOrWhiteSpace(request.Password))
+                throw new Exception("Invalid data");
+
             var client = await _customers.GetGetCustomerByPhoneNumber(request.PhoneNumber);
 
             if (client == null)
@@ -52,7 +58,7 @@ namespace BussinessLayer
             client.RefreshTokenExpiresAt = DateTime.UtcNow.AddDays(7);
             client.RefreshTokenRevokedAt = null;
 
-           _customers.UpdateRefreshToken(client);
+            _customers.UpdateRefreshToken(client);
 
             return new TokenResponse
             {
@@ -63,31 +69,37 @@ namespace BussinessLayer
 
         public async Task RegisterAsync(RegisterRequest request)
         {
-            if (string.IsNullOrWhiteSpace(request.PhoneNumber) ||
-                string.IsNullOrWhiteSpace(request.Password))
-                throw new Exception("Invalid data");
+            try {
+                if (string.IsNullOrWhiteSpace(request.FullName) ||
+                    string.IsNullOrWhiteSpace(request.PhoneNumber) ||
+                    string.IsNullOrWhiteSpace(request.Password) || request.DateOfBirth == default(DateTime) || request.CountryId < 1)
+                    throw new Exception("Invalid data");
 
-            var existing = await _customers.GetGetCustomerByPhoneNumber(request.PhoneNumber);
+                var existing = await _customers.GetGetCustomerByPhoneNumber(request.PhoneNumber);
 
-            if (existing != null)
-                throw new Exception("Phone number already exists");
+                if (existing != null)
+                    throw new Exception("Phone number already exists");
 
-            var customer = new Customers
+                var customer = new Customers
+                {
+                    FullName = request.FullName,
+                    PhoneNumber = request.PhoneNumber,
+                    Email = request.Email,
+                    DateOfBirth = request.DateOfBirth,
+                    CountryId = Convert.ToInt16(request.CountryId),
+                    Password = BCrypt.Net.BCrypt.HashPassword(request.Password),
+                    IsActive = true,
+                    Role = "Client"
+                };
+
+                _customers.Register(customer);
+            } catch (Exception ex)
             {
-                FullName = request.FullName,
-                PhoneNumber = request.PhoneNumber,
-                Email = request.Email,
-                DateOfBirth = request.DateOfBirth,
-                CountryId = request.CountryId,
-                Password = BCrypt.Net.BCrypt.HashPassword(request.Password),
-                IsActive = true,
-                Role = "Client"
-            };
-
-            _customers.Register(customer);
+                EventLog.WriteEntry("Application","Register Error :" + ex.Message);
+            }
         }
 
-        public async Task<TokenResponse> RefreshAsync(RefreshRequest request)
+       /* public async Task<TokenResponse> RefreshAsync(RefreshRequest request)
         {
             var client = await _customers.GetGetCustomerByPhoneNumber(request.PhoneNumber);
 
@@ -117,19 +129,54 @@ namespace BussinessLayer
                 AccessToken = newAccessToken,
                 RefreshToken = newRefreshToken
             };
+        }*/
+
+        public async Task<TokenResponse> RefreshAsync(string refreshToken, string phoneNumber)
+        {
+            // جلب العميل بواسطة refresh token hash
+            var client = await _customers.GetGetCustomerByPhoneNumber(phoneNumber);
+
+            if (client == null)
+                throw new UnauthorizedAccessException("Invalid refresh request");
+
+            if (client.RefreshTokenRevokedAt != null)
+                throw new UnauthorizedAccessException("Refresh token is revoked");
+
+            if (client.RefreshTokenExpiresAt == null || client.RefreshTokenExpiresAt <= DateTime.UtcNow)
+                throw new UnauthorizedAccessException("Refresh token expired");
+
+            if (!BCrypt.Net.BCrypt.Verify(refreshToken, client.RefreshTokenHash))
+                throw new UnauthorizedAccessException("Invalid refresh token");
+
+            // توليد توكنات جديدة
+            var newAccessToken = GenerateAccessToken(client);
+            var newRefreshToken = GenerateRefreshToken();
+
+            // تحديث قاعدة البيانات
+            client.RefreshTokenHash = BCrypt.Net.BCrypt.HashPassword(newRefreshToken);
+            client.RefreshTokenExpiresAt = DateTime.UtcNow.AddDays(7);
+            client.RefreshTokenRevokedAt = null;
+
+            _customers.UpdateRefreshToken(client);
+
+            return new TokenResponse
+            {
+                AccessToken = newAccessToken,
+                RefreshToken = newRefreshToken
+            };
         }
 
-        public async Task<bool> LogoutAsync(LogoutRequest request)
+        public async Task<bool> LogoutAsync(string refreshToken, LogoutRequest request)
         {
             var client = await _customers.GetGetCustomerByPhoneNumber(request.PhoneNumber);
 
             if (client == null)
                 return false;
 
-            if (string.IsNullOrEmpty(request.RefreshToken) || string.IsNullOrEmpty(client.RefreshTokenHash))
+            if (string.IsNullOrEmpty(refreshToken) || string.IsNullOrEmpty(client.RefreshTokenHash))
                 return false;
 
-            bool refreshValid = BCrypt.Net.BCrypt.Verify(request.RefreshToken, client.RefreshTokenHash);
+            bool refreshValid = BCrypt.Net.BCrypt.Verify(refreshToken, client.RefreshTokenHash);
 
             if (!refreshValid)
                 return false;
@@ -142,9 +189,7 @@ namespace BussinessLayer
         }
 
 
-        
         // ================== Private Helpers ==================
-
         private string GenerateAccessToken(Customers client)
         {
             var claims = new[]

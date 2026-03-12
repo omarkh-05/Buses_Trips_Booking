@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Castle.Core.Resource;
+using Microsoft.EntityFrameworkCore;
 using ModelsLayer;
 using System;
 using System.Collections.Generic;
@@ -139,52 +140,67 @@ namespace DataLayer
                 return new DataTable();
             }
         }
-        public static async Task<List<BooksDTO>> GetAllBooksDTOForCusotmer(int CustomerID)
+        public static async Task<List<BooksDTO>> GetAllBooksDTOForCustomer(int CustomerID)
         {
             try
             {
                 using var db = new AppDbContext();
 
-                var list = db.Bookings
+                var list = await db.Bookings
                     .Include(t => t.Trip)
-                    .Include(t => t.Customer)
-                    .Include(t => t.CreatedByUser)
-                    .Include(t => t.Ticket)
-                    .Include(t => t.Payment)
                     .Where(t => t.CustomerID == CustomerID)
-                    .ToList();
+                    .ToListAsync();
 
-                // قائمة من TripDTO
                 var bookslist = new List<BooksDTO>();
+                var today = DateTime.Now.Date; // فقط التاريخ بدون الوقت
 
-                foreach (var t in list)
+                foreach (var b in list)
                 {
+                    // حساب الفرق بين تاريخ السفر والتاريخ الحالي
+                    var daysUntilTravel = (b.TravelDate.Date - today).Days;
+
+                    // تحديد الحالة الجديدة
+                    string dynamicStatus;
+                    if (daysUntilTravel < 0)
+                        dynamicStatus = "Done";
+                    else if (daysUntilTravel <= 2)
+                        dynamicStatus = "Soon";
+                    else if (daysUntilTravel > 2)
+                        dynamicStatus = "On Going";
+                    else
+                        dynamicStatus = "Stopped";
+
+                    // تحديث الـ DB فقط إذا تغيرت الحالة
+                    if (b.Status != dynamicStatus)
+                    {
+                        b.Status = dynamicStatus;
+                    }
+
+                    // بناء الـ DTO
                     bookslist.Add(new BooksDTO
                     {
-                        BookingID = t.BookingID,
-                        TravelDate = t.TravelDate,
-                        Class = t.Class,
-                        AdultCount = t.AdultCount,
-                        ChildCount = t.ChildCount,
-                        DisabledCount = t.DisabledCount,
-                        Status = t.Status,
-                        PhoneNumber = t.PhoneNumber,
-                        CreatedAt = t.CreatedAt,
-                        TravelType = t.TravelType,
-                        PaymentStatus = t.PaymentStatus,
-                        TotalAmount = t.TotalAmount,
-                        CustomerID = t.CustomerID,
-                        TripID = t.TripID,
-                        CreatedBy = t.CreatedBy,
+                        BookingID = b.BookingID,
+                        TripName = b.Trip.TripName,
+                        TravelDate = b.TravelDate,
+                        Class = b.Class,
+                        PassengerCount = (byte)(b.AdultCount + b.ChildCount + b.DisabledCount),
+                        PhoneNumber = b.PhoneNumber,
+                        Status = dynamicStatus,
+                        TravelType = b.TravelType,
+                        PaymentStatus = b.PaymentStatus,
+                        TotalAmount = b.TotalAmount
                     });
                 }
+
+                // حفظ أي تغييرات تم تعديلها
+                await db.SaveChangesAsync();
 
                 return bookslist;
             }
             catch (Exception ex)
             {
                 WriteEventLog("GetAllBooksDTO Error", ex);
-                return new List<BooksDTO>(); // إرجاع قائمة فارغة في حال حدوث خطأ
+                return new List<BooksDTO>();
             }
         }
 
@@ -225,6 +241,47 @@ namespace DataLayer
             }
         }
 
+        // ===================== Get Booking By Customer ID =====================
+        public static async Task<List<Bookings>?> GetBookingByCustomerID(int customerId)
+        {
+            try
+            {
+                using var db = new AppDbContext();
+
+                return await db.Bookings
+                    .Include(b => b.Customer)
+                    .Include(b => b.Trip)
+                    .ThenInclude(t => t.Route)
+                    .Include(b => b.CreatedByUser)
+                    .Include(b => b.Ticket)
+                    .Include(b => b.Payment)
+                    .Where(b => b.CustomerID == customerId).ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                WriteEventLog("GetBookingByID Error", ex);
+                return null;
+            }
+        }
+
+
+        public static async Task<bool> IsBookingOwnedByCustomer(int bookingId,int customerId)
+        {
+            try
+            {
+                using var db = new AppDbContext();
+                var booking = await db.Bookings
+                .Where(b => b.BookingID == bookingId && b.CustomerID == customerId)
+                .FirstOrDefaultAsync();
+
+                return booking != null;
+            }
+            catch (Exception ex)
+            {
+                WriteEventLog("GetBookingByID Error", ex);
+                return false;
+            }
+        }
 
         public static async Task<bool> SaveBookingWithTicketsAndPaymentAsync(Bookings booking,List<Tickets> tickets,Payments payment)
         {
@@ -236,6 +293,7 @@ namespace DataLayer
                 // 1) Save or update Booking
                 if (booking.BookingID <= 0)
                 {
+                    booking.CreatedAt = DateTime.Now;
                     db.Bookings.Add(booking);
                     await db.SaveChangesAsync(); // generates BookingID
                 }

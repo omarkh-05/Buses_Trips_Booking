@@ -14,10 +14,11 @@ builder.Services.AddControllers();
 // مهم جدًا dependency injection ل CustomersBLL
 builder.Services.AddScoped<ICustomersBLL,CustomersBLL>();
 builder.Services.AddScoped<IAuthService,AuthServiceBLL>();
+builder.Services.AddScoped<IBookingsBLL,BookingsBLL>();
 
 #region Swagger
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
+//builder.Services.AddEndpointsApiExplorer();
 
 // Register Swagger generator and customize its behavior.
 builder.Services.AddSwaggerGen(options =>
@@ -89,15 +90,12 @@ builder.Services.AddSwaggerGen(options =>
 #region Cors
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("StudentApiCorsPolicy", policy =>
+    options.AddPolicy("BusBookingApiCorsPolicy", policy =>
     {
-        policy
-            .WithOrigins(
-                "https://localhost:7217",
-                "http://localhost:5215"
-            )
+        policy.WithOrigins("http://127.0.0.1:5500")
             .AllowAnyHeader()
-            .AllowAnyMethod();
+            .AllowAnyMethod()
+            .AllowCredentials();
     });
 });
 #endregion
@@ -196,6 +194,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+    app.UseStaticFiles();
 
 app.UseHttpsRedirection();
 

@@ -47,7 +47,9 @@ namespace DataLayer
                     return false;
 
                 db.Entry(oldCustomer).CurrentValues.SetValues(customer);
-
+                db.Entry(oldCustomer).Property(c => c.DistanceKm).IsModified = true; // سوينا الحركة هاي عشانهم قيم عددية فقط ومهم تعديلهم لانه بدونهم حتى لو القيمة ما اتغيرت بضل يعتبرهم مش متعدلين
+                db.Entry(oldCustomer).Property(c => c.MoneySpent).IsModified = true;
+                db.Entry(oldCustomer).Property(c => c.NumberOfCountryVisited).IsModified = true;
                 return db.SaveChanges() > 0;
             }
             catch (Exception ex)
