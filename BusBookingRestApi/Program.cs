@@ -92,10 +92,14 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("BusBookingApiCorsPolicy", policy =>
     {
-        policy.WithOrigins("http://127.0.0.1:5500")
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials();
+        policy.WithOrigins(
+            "http://127.0.0.1:5500", // الرابط المحلي لواجهة المستخدم
+            "http://localhost:5281",
+            "https://professionally-overjocular-chelsie.ngrok-free.dev" // الرابط عبر ngrok
+        )
+        .AllowAnyHeader()
+        .AllowAnyMethod()
+        .AllowCredentials(); // السماح بالوصول مع credentials
     });
 });
 #endregion
@@ -197,7 +201,10 @@ if (app.Environment.IsDevelopment())
 
     app.UseStaticFiles();
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseCors("BusBookingApiCorsPolicy");
 
